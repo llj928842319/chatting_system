@@ -1,29 +1,7 @@
-#include <stdio.h>
-#include <netdb.h>
-#include <netinet/in.h>
-#include <stdlib.h>
-#include <string.h>
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <sys/select.h>
-#include <arpa/inet.h>
-#include <unistd.h>
-#include <sys/types.h>
-#include <fcntl.h>
 
-#include <sys/epoll.h>
-#include <pthread.h>
-#include <errno.h>
-#include <stdbool.h>
-#include "color_output.h"
-#include "scanbox.h"
 #include "chat.h"
 
-#define MAX_EVENT_NUMBER 1024 //事件总数量
-#define BUFFER_SIZE 10        //缓冲区大小，这里为10个字节
-#define ENABLE_ET 0           // ET模式
 
-#define MAX 80
 
 /* 文件描述符设为非阻塞状态
  * 注意：这个设置很重要，否则体现不出高性能
@@ -64,73 +42,79 @@ void func(int sockfd)
     unsigned int len = 0;
 	struct sockaddr_in cli;
  
-    funcbegin: 
-    connfd = accept(sockfd, (SA *)&cli, &len);
-    if (connfd < 0)
-    {
-        perror("server accept failed..\n");
-        exit(0);
-    }
-    printf("%d\n", connfd);
-    printf("server accept the client...\n");
-
-    struct epoll_event events[MAX_EVENT_NUMBER];
-    int nfds;
-    int n = 0;
-    char buff[MAX] = {0};
-
-    boxout();
-    int epoll_fd = epoll_create(5); //在内核中创建epoll实例，flag为5只是为了分配空间用，实际可以不用带
-    if (epoll_fd == -1)
-    {
-        perror("fail to create epoll!\n");
-        exit(1);
-    }
-
-    addfd(epoll_fd, connfd, true); //添加文件描述符到epoll对象中      接受对方文件
-    addfd(epoll_fd, 0, true);
-    for (;;)
-    {
-        nfds = epoll_wait(epoll_fd, events, MAX_EVENT_NUMBER, -1);
-        if (nfds == -1)
+    for(;;){
+       
+        connfd = accept(sockfd, (SA *)&cli, &len);
+        if (connfd < 0)
         {
-            perror("epoll_wait");
-            exit(EXIT_FAILURE);
+            perror("server accept failed..\n");
+            exit(0);
+        }
+        printf("%d\n", connfd);
+        printf("server accept the client...\n");
+
+        struct epoll_event events[MAX_EVENT_NUMBER];
+        int nfds;
+        int n = 0;
+        char buff[MAX] = {0};
+
+        boxout();
+        int epoll_fd = epoll_create(5); //在内核中创建epoll实例，flag为5只是为了分配空间用，实际可以不用带
+        if (epoll_fd == -1)
+        {
+            perror("fail to create epoll!\n");
+            exit(1);
         }
 
-        for (n = 0; n < nfds; ++n)
+        addfd(epoll_fd, connfd, true); //添加文件描述符到epoll对象中      接受对方文件
+        addfd(epoll_fd, 0, true);
+
+
+        for (;;)
         {
-
-            if (events[n].data.fd == connfd)
+            nfds = epoll_wait(epoll_fd, events, MAX_EVENT_NUMBER, -1);
+            if (nfds == -1)
             {
-                // read the message from client and copy int in buffer
+                perror("epoll_wait");
+                exit(EXIT_FAILURE);
+            }
 
-                bzero(buff, MAX);
-                int ret = read(connfd, buff, sizeof(buff));
-                if (ret == 0)
+            for (n = 0; n < nfds; ++n)
+            {
+
+                if (events[n].data.fd == connfd)
                 {
-                    printf("Client exit\n");
-                    goto label1;
+                    // read the message from client and copy int in buffer
+
+                    bzero(buff, MAX);
+                    int ret = read(connfd, buff, sizeof(buff));
+                    if (ret == 0)
+                    {
+                        printf("Client exit\n");
+                        close(connfd);
+                        break;
+                    }
+                    buff[ret - 1] = '\0';
+                    newMessage("client", buff);
+                    boxout();
                 }
-                buff[ret - 1] = '\0';
-                newMessage("client", buff);
-                boxout();
+                else if (events[n].data.fd == 0)
+                {
+                    boxout();
+                    bzero(buff, MAX);
+                    scantext(buff, MAX);
+                    write(connfd, buff, sizeof(buff));
+                }
+                else
+                {
+                }
             }
-            else if (events[n].data.fd == 0)
-            {
-                boxout();
-                bzero(buff, MAX);
-                scantext(buff, MAX);
-                write(connfd, buff, sizeof(buff));
-            }
-            else
-            {
-            }
+            break;
         }
+        
+         
+        
     }
-    
-    label1: close(connfd);
-    goto funcbegin;
 }
 /*
     //inifinite loop for chat
