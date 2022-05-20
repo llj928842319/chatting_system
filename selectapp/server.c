@@ -20,8 +20,11 @@
 //drive function
 int main()
 {
+	printf("\033c\n");
+
 	int sockfd = 0, connfd = 0,  ret = 0;
 	unsigned int len = 0;
+	int enable = 1;
 	struct sockaddr_in servaddr, cli;
 	bzero(&servaddr, sizeof(servaddr));
 	len = sizeof(cli);
@@ -33,6 +36,8 @@ int main()
 
 
 	sockfd = socket(AF_INET, SOCK_STREAM, 0);
+	setsockopt(sockfd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof(enable));
+
 	if (sockfd == -1) {
 		perror("socket creation failed...\n");
 		exit(0);

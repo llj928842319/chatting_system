@@ -5,8 +5,9 @@
 #include <stdio.h>
 #include <sys/ioctl.h>
 #include <unistd.h>
-#include "color_output.h"
+#include <string.h>
 
+#include "color_output.h"
 
 
 

@@ -18,6 +18,8 @@
 
 int main()
 {
+	printf("\033c\n");
+
 	int sockfd = 0;
 	struct sockaddr_in servaddr;
 	bzero(&servaddr, sizeof(servaddr));
