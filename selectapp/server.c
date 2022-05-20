@@ -22,12 +22,10 @@ int main()
 {
 	printf("\033c\n");
 
-	int sockfd = 0, connfd = 0,  ret = 0;
-	unsigned int len = 0;
+	int sockfd = 0, ret = 0;
 	int enable = 1;
-	struct sockaddr_in servaddr, cli;
+	struct sockaddr_in servaddr;
 	bzero(&servaddr, sizeof(servaddr));
-	len = sizeof(cli);
 	
 	// assign ip,port
 	servaddr.sin_family = AF_INET;
@@ -60,17 +58,8 @@ int main()
 	}
 	printf("server listening...\n");
 
-
-	connfd = accept(sockfd, (SA*)&cli, &len);
-	if (connfd < 0) {
-		perror("server accept failed..\n");
-		exit(0);
-	}
-	printf("%d\n",connfd);
-	printf("server accept the client...\n");
-	
 	//function for chatting between client and server
-	func(connfd);
+	func(sockfd);
 	
 	//after chatting close the socket
 	close(sockfd);

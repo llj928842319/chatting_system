@@ -14,6 +14,8 @@
 #include <unistd.h>
 #include "scanbox.h"
 
+#define SA struct sockaddr
+
 void func(int connfd);
 
 
