@@ -12,7 +12,6 @@
 #include "scanbox.h"
 #include "chat.h"
 
-#define MAX 80
 #define PORT 8080
 #define SA struct sockaddr
 

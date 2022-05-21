@@ -1,5 +1,5 @@
 #include "scanbox.h"
-
+//这个代码实现聊天框输出
 
 // nbuf: buffer 的大小
 void boxout()

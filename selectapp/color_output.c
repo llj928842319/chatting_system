@@ -1,5 +1,10 @@
 #include "color_output.h"
 
+//这个代码是实现聊天信息彩色输出的
+
+
+
+
 void newMessage(char *from, char *message) {
 	static int rol = 1;
 	time_t t;

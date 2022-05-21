@@ -1,5 +1,13 @@
 
 #include "chat.h"
+//这个代码是epoll实现多并发这一套的
+
+#define MAX_EVENT_NUMBER 1024 //事件总数量
+#define BUFFER_SIZE 80        //缓冲区大小，这里为10个字节
+#define ENABLE_ET 0           // ET模式
+
+#define MAX 80
+#define SA struct sockaddr
 
 
 
@@ -35,15 +43,159 @@ void addfd(int epoll_fd, int fd, bool enable_et)
     setnonblocking(fd); //设为非阻塞模式
 }
 
+
+
+
+
+/*  LT水平触发 
+ *  注意：水平触发简单易用，性能不高，适合低并发场合
+ *        一旦缓冲区有数据，则会重复不停的进行通知，直至缓冲区数据读写完毕
+ */
+
+void lt_process(struct epoll_event* events, int number, int epoll_fd, int listen_fd)
+{
+    char buff[BUFFER_SIZE];
+    int i;
+    for(i = 0; i < number; i++) //已经就绪的事件，这些时间可读或者可写
+    {
+        int sockfd = events[i].data.fd; //获取描述符
+        if(sockfd == listen_fd)  //如果监听类型的描述符，则代表有新的client接入，则将其添加到内核中的epoll结构中
+        {
+            struct sockaddr_in client_address;
+            socklen_t client_addrlength = sizeof(client_address);
+            int connfd = accept(listen_fd, (struct sockaddr*)&client_address, &client_addrlength); //创建连接并返回文件描述符（实际进行的三次握手过程）
+            addfd(epoll_fd, connfd, false);  //添加到epoll结构中并初始化为LT模式
+        }
+        else if(events[i].events & EPOLLIN) //如果客户端有数据过来
+        {
+            if (events[i].data.fd & sockfd)
+                {
+                    // read the message from client and copy int in buffer
+
+                    bzero(buff, MAX);
+                    int ret = read(sockfd, buff, sizeof(buff));
+                    if (ret == 0)
+                    {
+                        printf("Client exit\n");
+                        close(sockfd);
+                        break;
+                    }
+                    buff[ret - 1] = '\0';
+                    newMessage("client", buff);
+                    boxout();
+                }
+        }
+        else if (events[i].data.fd & 0)
+        {
+            boxout();
+            bzero(buff, MAX);
+            scantext(buff, MAX);
+            write(sockfd, buff, sizeof(buff));
+        }
+        else
+        {
+            printf("something unexpected happened!\n");
+        }
+    }
+}
+/*  ET Work mode features: efficient but potentially dangerous */
+/*  ET边缘触发
+ *  注意：边缘触发由于内核不会频繁通知，所以高效，适合高并发场合，但是处理不当将会导致严重事故
+          其通知机制和触发方式参见之前讲解，由于不会重复触发，所以需要处理好缓冲区中的数据，避免脏读脏写或者数据丢失等
+ */
+void et_process(struct epoll_event* events, int number, int epoll_fd, int listen_fd)
+{
+    char buff[BUFFER_SIZE];
+    int i;
+    for(i = 0; i < number; i++)
+    {
+        int sockfd = events[i].data.fd;
+        if(sockfd == listen_fd) //如果有新客户端请求过来，将其添加到内核中的epoll结构中并默认置为ET模式
+        {
+            struct sockaddr_in client_address;
+            socklen_t client_addrlength = sizeof(client_address);
+            int connfd = accept(listen_fd, (struct sockaddr*)&client_address, &client_addrlength);
+            addfd(epoll_fd, connfd, true); 
+        }
+        else if(events[i].events & EPOLLIN) //如果客户端有数据过来
+        {
+
+            if (events[i].data.fd & sockfd)
+            {
+             // read the message from client and copy int in buffer
+
+                bzero(buff, MAX);
+                int ret = read(sockfd, buff, sizeof(buff));
+                if (ret == 0)
+                {
+                    printf("Client exit\n");
+                    close(sockfd);
+                    break;
+                }
+                buff[ret - 1] = '\0';
+                newMessage("client", buff);
+                boxout();
+            }    
+        }
+         else if (events[i].data.fd == 0){
+            
+            boxout();
+            bzero(buff, MAX);
+            scantext(buff, MAX);
+            write(sockfd, buff, sizeof(buff));
+         }
+        else{
+        
+            printf("something unexpected happened!\n");
+        }
+    }
+}
+
+
+
 // function designed for chat between client and server
 void func(int sockfd)
 {
-    int connfd = 0;
-    unsigned int len = 0;
-	struct sockaddr_in cli;
- 
-    for(;;){
+    struct epoll_event events[MAX_EVENT_NUMBER];
+    int epoll_fd = epoll_create(5); //在内核中创建epoll实例，flag为5只是为了分配空间用，实际可以不用带
+    if (epoll_fd == -1)
+    {
+        perror("fail to create epoll!\n");
+            exit(1);
+    }
+
+
+    addfd(epoll_fd, sockfd, true); //添加文件描述符到epoll对象中      接受对方文件
+    addfd(epoll_fd, 0, true);
+    if(epoll_fd == -1)
+    {
+        perror("fail to create epoll!\n");
+        exit(EXIT_FAILURE);
+    }
        
+    
+    while(1)
+    {
+        int ret = epoll_wait(epoll_fd, events, MAX_EVENT_NUMBER, -1); //拿出就绪的文件描述符并进行处理
+        if(ret < 0)
+        {
+            printf("epoll failure!\n");
+            break;
+        }
+        if(ENABLE_ET) //ET处理方式
+        {
+            et_process(events, ret, epoll_fd, sockfd);
+        }
+        else  //LT处理方式
+        {
+            lt_process(events, ret, epoll_fd, sockfd);
+        }
+    }
+    
+}
+
+
+/*
         connfd = accept(sockfd, (SA *)&cli, &len);
         if (connfd < 0)
         {
@@ -52,24 +204,10 @@ void func(int sockfd)
         }
         printf("%d\n", connfd);
         printf("server accept the client...\n");
-
-        struct epoll_event events[MAX_EVENT_NUMBER];
-        int nfds;
-        int n = 0;
-        char buff[MAX] = {0};
-
         boxout();
-        int epoll_fd = epoll_create(5); //在内核中创建epoll实例，flag为5只是为了分配空间用，实际可以不用带
-        if (epoll_fd == -1)
-        {
-            perror("fail to create epoll!\n");
-            exit(1);
-        }
+*/
 
-        addfd(epoll_fd, connfd, true); //添加文件描述符到epoll对象中      接受对方文件
-        addfd(epoll_fd, 0, true);
-
-
+/*
         for (;;)
         {
             nfds = epoll_wait(epoll_fd, events, MAX_EVENT_NUMBER, -1);
@@ -109,13 +247,12 @@ void func(int sockfd)
                 {
                 }
             }
-            break;
+        break;  
         }
+        */       
         
-         
-        
-    }
-}
+
+
 /*
     //inifinite loop for chat
     fd_set read_fds;

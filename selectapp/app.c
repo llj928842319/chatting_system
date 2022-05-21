@@ -26,7 +26,8 @@ int SetNonblocking(int fd)
     fcntl(fd, F_SETFL, new_option);
     return old_option;
 }
-/* 将文件描述符fd放入到内核中的epoll数据结构中并将fd设置为EPOLLIN可读，同时根据ET开关来决定使用水平触发还是边缘触发模式 
+/* 将文件描述符fd放入到内核中的epoll数据结构中并将fd设置为EPOLLIN可读，同时
+根据ET开关来决定使用水平触发还是边缘触发模式 
  * 注意：默认为水平触发，或上EPOLLET则为边缘触发
 */
 void AddFd(int epoll_fd, int fd, bool enable_et)
@@ -41,13 +42,12 @@ void AddFd(int epoll_fd, int fd, bool enable_et)
     epoll_ctl(epoll_fd, EPOLL_CTL_ADD, fd, &event);  //将fd添加到内核中的epoll实例中
     SetNonblocking(fd);  //设为非阻塞模式                      
 }
+
+
 /*  LT水平触发 
  *  注意：水平触发简单易用，性能不高，适合低并发场合
  *        一旦缓冲区有数据，则会重复不停的进行通知，直至缓冲区数据读写完毕
  */
-
-
-
 
 void lt_process(struct epoll_event* events, int number, int epoll_fd, int listen_fd)
 {
