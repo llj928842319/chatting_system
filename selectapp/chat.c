@@ -3,10 +3,10 @@
 //这个代码是epoll实现多并发这一套的
 
 #define MAX_EVENT_NUMBER 1024 //事件总数量
-#define BUFFER_SIZE 80        //缓冲区大小，这里为10个字节
+#define BUFFER_SIZE 10       //缓冲区大小，这里为10个字节
 #define ENABLE_ET 0           // ET模式
 
-#define MAX 80
+
 #define SA struct sockaddr
 
 
@@ -68,11 +68,11 @@ void lt_process(struct epoll_event* events, int number, int epoll_fd, int listen
         }
         else if(events[i].events & EPOLLIN) //如果客户端有数据过来
         {
-            if (events[i].data.fd & sockfd)
+            if (events[i].data.fd == sockfd)
                 {
                     // read the message from client and copy int in buffer
 
-                    bzero(buff, MAX);
+                    bzero(buff, BUFFER_SIZE);
                     int ret = read(sockfd, buff, sizeof(buff));
                     if (ret == 0)
                     {
@@ -85,12 +85,14 @@ void lt_process(struct epoll_event* events, int number, int epoll_fd, int listen
                     boxout();
                 }
         }
-        else if (events[i].data.fd & 0)
+        else if (events[i].data.fd == 0)
         {
+            printf("收到键盘的输入\n");
             boxout();
-            bzero(buff, MAX);
-            scantext(buff, MAX);
-            write(sockfd, buff, sizeof(buff));
+            bzero(buff, BUFFER_SIZE);
+            scantext(buff, BUFFER_SIZE);
+            //////群发多人
+            //write(connfd, buff, sizeof(buff));
         }
         else
         {
@@ -120,11 +122,11 @@ void et_process(struct epoll_event* events, int number, int epoll_fd, int listen
         else if(events[i].events & EPOLLIN) //如果客户端有数据过来
         {
 
-            if (events[i].data.fd & sockfd)
+            if (events[i].data.fd == sockfd)
             {
              // read the message from client and copy int in buffer
 
-                bzero(buff, MAX);
+                bzero(buff, BUFFER_SIZE);
                 int ret = read(sockfd, buff, sizeof(buff));
                 if (ret == 0)
                 {
@@ -140,8 +142,8 @@ void et_process(struct epoll_event* events, int number, int epoll_fd, int listen
          else if (events[i].data.fd == 0){
             
             boxout();
-            bzero(buff, MAX);
-            scantext(buff, MAX);
+            bzero(buff, BUFFER_SIZE);
+            scantext(buff, BUFFER_SIZE);
             write(sockfd, buff, sizeof(buff));
          }
         else{
