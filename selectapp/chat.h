@@ -11,24 +11,16 @@
 #include <sys/select.h>
 #include <arpa/inet.h>
 #include <unistd.h>
-#include <sys/types.h>
 #include <fcntl.h>
 #include <sys/epoll.h>
 #include <pthread.h>
 #include <errno.h>
 #include <stdbool.h>
 
-#include "color_output.h"
-#include "scanbox.h"
+#include "epolll.h"
 
 
 
-
-
-int SetNonblocking(int fd);
-void AddFd(int epoll_fd, int fd, bool enable_et);
-void lt_process(struct epoll_event* events, int number, int epoll_fd, int listen_fd);
-void et_process(struct epoll_event* events, int number, int epoll_fd, int listen_fd);
 void func(int sockfd);
 
 
