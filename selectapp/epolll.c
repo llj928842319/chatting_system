@@ -25,10 +25,12 @@ int name_exist(linkList H ,NMSG nmsg,int connfd)
     linkList s = H->next;
     while (s){//如果服务器中已经有这个人了，就不存,并给该客户端发送消息
         if (strncmp(nmsg.name, s->name, sizeof(nmsg.name)) == 0){
+            free(s);
             return 0;
         }
         s=s->next;
     }
+    free(s);
     return 1;
 }
 
@@ -37,10 +39,12 @@ int dstname_exist(linkList H,NMSG nmsg,int connfd)
     linkList t=H->next;
     while (t){
         if (!strncmp(nmsg.dst_name, t->name, sizeof(nmsg.dst_name))){//表示有这个人
+            free(t);
             return 1;
         }
         t = t->next;
     }
+    free(t);
     return 0;//表示没有这个人
 }
 
@@ -100,66 +104,72 @@ void lt_process(struct epoll_event* events, int number, int epoll_fd, int listen
             addfd(epoll_fd, connfd, false);  //添加到epoll结构中并初始化为LT模式
             // TODO: 把 connfd 加到自己的数据结构里
             if (name_exist(Head, nmsg, connfd)==0){
-                bzero(nmsg.text,sizeof(nmsg.text));
+                bzero(nmsg.text, sizeof(nmsg.text));
                 sprintf(nmsg.text,"The user %s has been registered!\n",nmsg.name);
-                if (send(connfd,&nmsg,sizeof(nmsg),0) == -1){
+                if (send(connfd, &nmsg, sizeof(nmsg), 0) == -1){
                     perror("[send_4]");
                     
                 }
+                bzero(nmsg.text, sizeof(nmsg.text));
+                bzero(buff,BUFFER_SIZE);
             } 
             else{
                 insert_client(Head, nmsg, connfd);//，如果没在链表结构里面，将这个客户端添加到我们的链表中
-                printf("新添加一个\n");
-                linkList q = Head->next;
+                //printf("新添加一个\n");
+                linkList q = Head->next;      //新建一个暂时的链表用来遍历
                 sprintf(nmsg.text, "welcome to join us %s!\n",nmsg.name);
                 while (q){
-                    if (send(q->cfd, &nmsg, sizeof(nmsg), 0) == -1){
+                    if (send(q->cfd, &nmsg.text, sizeof(nmsg.text), 0) == -1){
                         perror("[send_1]");
                     }
                     q=q->next;
 
                     
                 }
+                free(q);
+                bzero(nmsg.text,sizeof(nmsg.text));
+                bzero(buff,BUFFER_SIZE);
+
          }
         }
         else if(events[i].events == EPOLLIN){   //如果客户端有数据过来             
-                newMessage("client", buff);
-                boxout();
-                //printf("收到客户的消息\n\n");
-                //printf("%d\n",events[i].data.fd);//打印类型，调试用
-
-                //bzero(buff, BUFFER_SIZE);
-                int ret = read(events[i].data.fd, buff, sizeof(buff));
+            newMessage("client", buff);
+            boxout();
+                       //bzero(buff, BUFFER_SIZE);
+            int ret = read(events[i].data.fd, buff, sizeof(buff));
             if (ret == 0) {
                 printf("Client exit\n");   
                     // TODO: 把 这个 fd 从数据结构里移出
-                    close(events[i].data.fd);
+                   // close(events[i].data.fd);
                 if (epoll_ctl(epoll_fd, EPOLL_CTL_DEL, events[i].data.fd, NULL)==-1){//删除这个文件描述符
                     perror("[epoll_ctl3]");
-                    //printf("删了一个\n");
                     
                     continue;//进行处理下一个事件
                     }
             }
-            if (events[i].data.fd == 0){//群聊，发送给每一个人///进来了，但是发不出去
-                //printf("\033c\n");//qingpin，调试用
+            if (events[i].data.fd == 0){//群聊，发送给每一个人///进来了，也发出去了
+              
                 boxout();
                 scantext(nmsg.text, BUFFER_SIZE);
-                //printf("%s进来了\n\n",nmsg.name);
-                //printf("收到键盘3333的输入\n");
+                newMessage("server", buff);
+                
+                //strncpy(nmsg.text, buff, sizeof(nmsg.name));为什么服务端自己不打印了呢
+                
                 linkList t = Head->next;//创建一个临时结点用于遍历
-                while (t){
-                    write(t->cfd, buff, sizeof(buff));
-                if (send(t->cfd,&nmsg.text,sizeof(nmsg.text),0)==-1){
+                while (t){                  
+                if (send(t->cfd, buff,sizeof(buff),0)==-1){
                     perror("[send_3]");
                     break;
                     }
+                    bzero(buff,BUFFER_SIZE);
                     t=t->next;
                 }
+                free(t);
+              //  break;
             }
                       
                 
-               // buff[ret - 1] = '\0';            
+              // buff[ret - 1] = '\0';            
         }   
         else{//当设置了ctl_wait(),一直等的时候，这个不会调用
         
