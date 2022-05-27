@@ -90,7 +90,8 @@ void addfd(int epoll_fd, int fd, bool enable_et)
 
 void lt_process(struct epoll_event* events, int number, int epoll_fd, int listen_fd )
 {
-    char buff[BUFFER_SIZE];
+    
+    
     int i;
 
     for(i = 0; i < number; i++){ //已经就绪的事件，这些时间可读或者可写
@@ -111,32 +112,56 @@ void lt_process(struct epoll_event* events, int number, int epoll_fd, int listen
                     
                 }
                 bzero(nmsg.text, sizeof(nmsg.text));
-                bzero(buff,BUFFER_SIZE);
+                
             } 
             else{
                 insert_client(Head, nmsg, connfd);//，如果没在链表结构里面，将这个客户端添加到我们的链表中
-                //printf("新添加一个\n");
+                
                 linkList q = Head->next;      //新建一个暂时的链表用来遍历
                 sprintf(nmsg.text, "welcome to join us %s!\n",nmsg.name);
                 while (q){
                     if (send(q->cfd, &nmsg.text, sizeof(nmsg.text), 0) == -1){
                         perror("[send_1]");
                     }
-                    q=q->next;
-
-                    
+                    q = q->next;                   
                 }
                 free(q);
                 bzero(nmsg.text,sizeof(nmsg.text));
-                bzero(buff,BUFFER_SIZE);
+                
 
          }
         }
-        else if(events[i].events == EPOLLIN){   //如果客户端有数据过来             
-            newMessage("client", buff);
-            boxout();
+        else if(events[i].events == EPOLLIN){   //如果客户端有数据过来
+            if (events[i].data.fd == 0){//群聊，发送给每一个人///进来了，也发出去了
+              
+                boxout();
+                scantext(nmsg.text, BUFFER_SIZE);
+                newMessage("server", nmsg.text);
+                
+                
+                //strncpy(nmsg.text, buff, sizeof(nmsg.name));为什么服务端自己不打印了呢
+                
+                linkList t = Head->next;//创建一个临时结点用于遍历
+                while (t){                  
+                if (send(t->cfd, nmsg.text, sizeof(nmsg.text),0)==-1){
+                    perror("[send_3]");
+                    break;
+                    }
+                    
+                    t=t->next;
+                }
+                boxout();
+                bzero(nmsg.text, sizeof(nmsg.text));
+                free(t);
+                break;
+            }
+            if(events[i].data.fd == 5){
+                printf("%d",events[i].data.fd);
+                newMessage("client", nmsg.text);
+                boxout();
+            }
                        //bzero(buff, BUFFER_SIZE);
-            int ret = read(events[i].data.fd, buff, sizeof(buff));
+            int ret = read(events[i].data.fd, nmsg.text, sizeof(nmsg.text));
             if (ret == 0) {
                 printf("Client exit\n");   
                     // TODO: 把 这个 fd 从数据结构里移出
@@ -147,26 +172,7 @@ void lt_process(struct epoll_event* events, int number, int epoll_fd, int listen
                     continue;//进行处理下一个事件
                     }
             }
-            if (events[i].data.fd == 0){//群聊，发送给每一个人///进来了，也发出去了
-              
-                boxout();
-                scantext(nmsg.text, BUFFER_SIZE);
-                newMessage("server", buff);
-                
-                //strncpy(nmsg.text, buff, sizeof(nmsg.name));为什么服务端自己不打印了呢
-                
-                linkList t = Head->next;//创建一个临时结点用于遍历
-                while (t){                  
-                if (send(t->cfd, buff,sizeof(buff),0)==-1){
-                    perror("[send_3]");
-                    break;
-                    }
-                    bzero(buff,BUFFER_SIZE);
-                    t=t->next;
-                }
-                free(t);
-              //  break;
-            }
+            
                       
                 
               // buff[ret - 1] = '\0';            
