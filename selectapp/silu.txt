@@ -1,0 +1,25 @@
+实现服务器和多个客户端通信
+客户端 有同IP不同port情况    port区分同一机器不同程序  IP区分不同机器
+
+服务器：
+epoll_wait{}
+
+listen_fd
+
+
+
+## Server
+
+bind
+
+listen
+
+accept  --->  得到远端IP和远端port  （fd 唯一确定了客户端）
+              recv / send
+
+
+
+server只用来accept
+
+
+

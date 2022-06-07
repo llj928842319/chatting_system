@@ -2,10 +2,9 @@
 
 //这个代码是实现聊天信息彩色输出的
 
+#include "epolll.h"
 
-
-
-void newMessage(char *from, char *message) {
+void newMessage(NMSG nmsg) {
 	static int rol = 1;
 	time_t t;
 	struct tm *timeinfo;
@@ -17,7 +16,7 @@ void newMessage(char *from, char *message) {
 
 	set_cursor(rol++, 0);
 	printf(COLOR_BLUE " [%s]" COLOR_DEFAULT, mytime);
-	printf(COLOR_GREEN "[%s] 说" COLOR_DEFAULT, from);
-	printf(COLOR_RED " [%s]" COLOR_DEFAULT "\n", message);
+	printf(COLOR_GREEN "[IP:%s PORT: %d] 说" COLOR_DEFAULT, nmsg.name, nmsg.port_name);
+	printf(COLOR_RED " [%s]" COLOR_DEFAULT "\n", nmsg.text);
 }
 

@@ -1,7 +1,7 @@
 
 #include "chat.h"
+#include "epolll.h"
 //这个代码是epoll实现多并发这一套的
-
 
 // function designed for chat between client and server
 void func(int sockfd)
@@ -15,8 +15,8 @@ void func(int sockfd)
     }
     Head = head_init();
 
-    addfd(epfd, sockfd, true); //添加文件描述符到epoll对象中    监听
-    addfd(epfd, 0, true);
+    addfd(epfd, sockfd, false); //添加文件描述符到epoll对象中 监听
+    addfd(epfd, 0, false);
     if(epfd == -1)
     {
         perror("fail to create epoll!\n");
@@ -26,24 +26,15 @@ void func(int sockfd)
     
     while(1)
     {
-        int ret = epoll_wait(epfd, events, MAX_EVENT_NUMBER, -1); //拿出就绪的文件描述符并进行处理
-        if(ret < 0)
+        int nfds = epoll_wait(epfd, events, MAX_EVENT_NUMBER, -1); //拿出就绪的文件描述符并进行处理
+        if(nfds < 0)
         {
             printf("epoll failure!\n");
             break;
         }
-       /*
-        if(ENABLE_ET) //ET处理方式
-        {
-            et_process(events, ret, epfd, sockfd);
-        }
-        else  //LT处理方式
-        {
-            */
-        lt_process(events, ret, epfd, sockfd);
-      //  }
+        lt_process(events, nfds, epfd, sockfd);
     }
-    
+    //free(events);
 }
 
 

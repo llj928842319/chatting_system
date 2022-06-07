@@ -21,8 +21,8 @@ void scantext(char buffer[], size_t nbuf){
     ioctl(STDOUT_FILENO, TIOCGWINSZ, &w);
     set_cursor(w.ws_row - 3, 12);
     memset(buffer, 0, nbuf);
-    scanf("%s", buffer);
-    set_cursor(w.ws_row - 3, 12);
+    scanf("%s\n", buffer);
+    set_cursor(w.ws_row - 4, 12);
 }
 
 
