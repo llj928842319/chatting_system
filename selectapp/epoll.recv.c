@@ -116,6 +116,11 @@ int sendall(NMSG nmsg) //群发消息
 void accept_client(struct epoll_event *events, int epoll_fd, int listen_fd) //接受客户端
 {
     int sendret = 0;
+
+    static int i = 0;
+    i++;
+    printf("调用i次:%d\n",i);
+    
     struct sockaddr_in client_address;
     socklen_t client_addrlength = sizeof(client_address);
     int connfd = accept(listen_fd, (struct sockaddr *)&client_address, &client_addrlength); //创建连接并返回文件描述符（实际进行的三次握手过程）

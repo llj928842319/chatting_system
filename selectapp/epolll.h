@@ -33,7 +33,7 @@ typedef struct newmessager{
     char text[BUFFER_SIZE];//消息内容，也就是缓存区 
     //in_port_t sin_port;			/* Port number.  */
     //struct in_addr sin_addr;		/* Internet address.  */
-}NMSG;
+}*NMSG;
 NMSG nmsg;//实例化
 
 
@@ -47,6 +47,7 @@ typedef struct  client_list
 }linklist, *linkList;
 
 linkList Head;//头头
+
 
 
 linkList head_init();

@@ -229,14 +229,17 @@ void lt_process(struct epoll_event *events, int number, int epoll_fd, int server
                 read_from_stdin(nmsg);
                 
             }
+            /*
             else
             { // 否则是来自 socket 的输入
                 read_from_client(nmsg, fd, epoll_fd);
             }
-            
+            */
+            read_from_client(nmsg, fd, epoll_fd);
             printf("在广播之前的nmsg.text:::%s\n",nmsg.text);
             broadcast(nmsg);
             bzerobuffer(nmsg);
+            printf("在广播之后的nmsg.text:::%s\n", nmsg.text);
         }
     }
 }
