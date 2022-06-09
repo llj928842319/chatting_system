@@ -73,5 +73,6 @@ int main()
 	
 	//after chatting close the socket
 	close(sockfd);
+	NMSG_delete();
 	return 0;
 }

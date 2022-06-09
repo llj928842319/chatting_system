@@ -11,30 +11,30 @@ linkList head_init()
 }
 
 //创建节点插入函数
-void insert_client(linkList Head, NMSG nmsg, int connfd)
+void insert_client(linkList Head, NMSG_PTR nmsg, int connfd)
 {
     linkList p = (linkList)malloc(sizeof(linklist));
-    // printf("%s\n", nmsg.name);
-    // printf("%s\n", nmsg.dst_name);
-    strcpy(p->name, nmsg.name); //复制字符
+    // printf("%s\n", nmsg->name);
+    // printf("%s\n", nmsg->dst_name);
+    strcpy(p->name, nmsg->name); //复制字符
     p->cfd = connfd;
-    (p->portid) = nmsg.port_name;
+    (p->portid) = nmsg->port_name;
     p->next = Head->next;
     Head->next = p;
 }
 
 //判断链表中是否已经存储
-int name_exist(linkList H, NMSG nmsg, int connfd)
+int name_exist(linkList H, NMSG_PTR nmsg, int connfd)
 {
     linkList s = H->next;
     while (s)
     { //如果服务器中已经有这个人了，就不存,并给该客户端发送消息
-        if ((strcmp(s->name, nmsg.name) == 0) && ((s->portid) == nmsg.port_name))
+        if ((strcmp(s->name, nmsg->name) == 0) && ((s->portid) == nmsg->port_name))
         {
             return 0;
         }
-        printf("\n\n\n%s %s\n\n\n", s->name, nmsg.name);
-        printf("\n\n%d %d", (s->portid), nmsg.port_name);
+        printf("\n\n\n%s %s\n\n\n", s->name, nmsg->name);
+        printf("\n\n%d %d", (s->portid), nmsg->port_name);
         // free(s);
         s = s->next;
     }
@@ -42,12 +42,12 @@ int name_exist(linkList H, NMSG nmsg, int connfd)
     return 1;
 }
 
-int dstname_exist(linkList H, NMSG nmsg, int connfd)
+int dstname_exist(linkList H, NMSG_PTR nmsg, int connfd)
 {
     linkList t = H->next;
     while (t)
     {
-        if (!((t->portid) == nmsg.port_name))
+        if (!((t->portid) == nmsg->port_name))
         { //表示有这个人
             // free(t);
             return 1;
@@ -91,14 +91,14 @@ void addfd(int epoll_fd, int fd, bool enable_et)
 }
 
 
-int sendall(NMSG nmsg) //群发消息
+int sendall(NMSG_PTR nmsg) //群发消息
 {
     int ret = 0;
     linkList t = Head->next; //创建一个临时结点用于遍历
     while (t)
     {
         boxout();
-        ret = send(t->cfd, nmsg.text, sizeof(nmsg.text), 0);
+        ret = send(t->cfd, nmsg->text, sizeof(nmsg->text), 0);
         if (ret == -1)
         {
             perror("[send_3]");
@@ -107,7 +107,7 @@ int sendall(NMSG nmsg) //群发消息
         t = t->next;
     }
     boxout();
-    bzero(nmsg.text, sizeof(nmsg.text));
+    bzero(nmsg->text, sizeof(nmsg->text));
     return ret;
 }
 
@@ -127,26 +127,26 @@ void accept_client(struct epoll_event *events, int epoll_fd, int listen_fd) //�
     // char clientname[30] ;
     // long int l = 0;
     getpeername(connfd, (struct sockaddr *)&client_address, &client_addrlength);
-    strcpy(nmsg.name, inet_ntoa(client_address.sin_addr)); // 获取ip
-    nmsg.port_name = client_address.sin_port;              //获取端口
+    strcpy(nmsg->name, inet_ntoa(client_address.sin_addr)); // 获取ip
+    nmsg->port_name = client_address.sin_port;              //获取端口
 
     addfd(epoll_fd, connfd, false); //添加到epoll结构中并初始化为LT模式
                                     // TODO: 把 connfd 加到自己的数据结构里
     if (name_exist(Head, nmsg, connfd) == 0)
     { //判断在链表结构里面
-        bzero(nmsg.text, sizeof(nmsg.text));
-        sprintf(nmsg.text, "The user ip:%s port:%d has been registered!\n", nmsg.name, nmsg.port_name);
-        if (send(connfd, &nmsg.text, sizeof(nmsg.text), 0) == -1)
+        bzero(nmsg->text, sizeof(nmsg->text));
+        sprintf(nmsg->text, "The user ip:%s port:%d has been registered!\n", nmsg->name, nmsg->port_name);
+        if (send(connfd, &nmsg->text, sizeof(nmsg->text), 0) == -1)
         {
             perror("[send_4]");
         }
-        bzero(nmsg.text, sizeof(nmsg.text));
+        bzero(nmsg->text, sizeof(nmsg->text));
     }
     else
     {
         insert_client(Head, nmsg, listen_fd); //，如果没在链表结构里面，将这个客户端添加到我们的链表中
 
-        sprintf(nmsg.text, "welcome to join us ip:%s Port:%d!\n", nmsg.name, nmsg.port_name);
+        sprintf(nmsg->text, "welcome to join us ip:%s Port:%d!\n", nmsg->name, nmsg->port_name);
         sendret = sendall(nmsg);
         // free(t);
         if (sendret == -1)
@@ -181,14 +181,14 @@ void lt_process(struct epoll_event *events, int number, int epoll_fd, int listen
             { //群聊，发送给每一个人///进来了，也发出去了
 
                 boxout();
-                bzero(nmsg.text, sizeof(nmsg.text));
-                scantext(nmsg.text, BUFFER_SIZE);
+                bzero(nmsg->text, sizeof(nmsg->text));
+                scantext(nmsg->text, BUFFER_SIZE);
                 newMessage(nmsg);
                 if (sendall(nmsg) == -1)
                     break;
             }
             // printf("%d",evens[i].data.fd);
-            int ret = read(events[i].data.fd, nmsg.text, sizeof(nmsg.text));
+            int ret = read(events[i].data.fd, nmsg->text, sizeof(nmsg->text));
             if (ret == -1)
             {
                 // TODO: 把 这个 fd 从数据结构里移出
@@ -219,7 +219,7 @@ void lt_process(struct epoll_event *events, int number, int epoll_fd, int listen
 
                 // bzero(buff, BUFFER_SIZE);
             }
-            bzero(nmsg.text, sizeof(nmsg.text));
+            bzero(nmsg->text, sizeof(nmsg->text));
 
             // buff[ret - 1] = '\0';
         }

@@ -32,8 +32,8 @@ typedef struct newmessager{
     char text[BUFFER_SIZE];//消息内容，也就是缓存区 
     //in_port_t sin_port;			/* Port number.  */
     //struct in_addr sin_addr;		/* Internet address.  */
-}NMSG;
-NMSG nmsg;//实例化
+}NMSG_PTR;
+NMSG_PTR nmsg;//实例化
 
 
 //定义链表，存储客户端，
@@ -55,23 +55,23 @@ linkList head_init()
 }
 
 //创建节点插入函数
-void insert_client(linkList Head, NMSG nmsg, int connfd)
+void insert_client(linkList Head, NMSG_PTR nmsg, int connfd)
 {
     linkList p = (linkList)malloc(sizeof(linklist));
-   // printf("%s\n", nmsg.name);
-   // printf("%s\n", nmsg.dst_name);
-    strcpy(p->name, nmsg.name);//复制字符
+   // printf("%s\n", nmsg->name);
+   // printf("%s\n", nmsg->dst_name);
+    strcpy(p->name, nmsg->name);//复制字符
     p->cfd = connfd;
     p->next = Head->next;
     Head->next = p;
 }
 
 
-int name_exist(linkList H ,NMSG nmsg,int connfd)
+int name_exist(linkList H ,NMSG_PTR nmsg,int connfd)
 {
     linkList s = H->next;
     while (s){//如果服务器中已经有这个人了，就不存,并给该客户端发送消息
-        if (strcmp(s->name, nmsg.name) == 0 && (!(*(s->portid) == nmsg.port_name) )){
+        if (strcmp(s->name, nmsg->name) == 0 && (!(*(s->portid) == nmsg->port_name) )){
             //free(s);
             return 0;
         }
@@ -144,41 +144,41 @@ int main()
             //char clientname[30] ;
             //long int l = 0;
             getpeername(connfd, (struct sockaddr*)&client_address, &client_addrlength);
-            strcpy(nmsg.name, inet_ntoa(client_address.sin_addr));// 获取ip
-            nmsg.port_name = client_address.sin_port;//获取端口
-            printf("\nip:%s  port:%d 进来了 \n", nmsg.name, nmsg.port_name);
+            strcpy(nmsg->name, inet_ntoa(client_address.sin_addr));// 获取ip
+            nmsg->port_name = client_address.sin_port;//获取端口
+            printf("\nip:%s  port:%d 进来了 \n", nmsg->name, nmsg->port_name);
 			//addfd(epoll_fd, connfd, false);  //添加到epoll结构中并初始化为LT模式
             // TODO: 把 connfd 加到自己的数据结构里
             if (name_exist(Head, nmsg, connfd)==0){//判断在链表结构里面
-                bzero(nmsg.text, sizeof(nmsg.text));
-                sprintf(nmsg.text,"The user ip:%s port:%d has been registered!\n",nmsg.name,nmsg.port_name);
-                if (send(connfd, &nmsg.text, sizeof(nmsg.text), 0) == -1){
+                bzero(nmsg->text, sizeof(nmsg->text));
+                sprintf(nmsg->text,"The user ip:%s port:%d has been registered!\n",nmsg->name,nmsg->port_name);
+                if (send(connfd, &nmsg->text, sizeof(nmsg->text), 0) == -1){
                     perror("[send_4]");
                     
                 }
-                bzero(nmsg.text, sizeof(nmsg.text));
+                bzero(nmsg->text, sizeof(nmsg->text));
                 
             } 
             else{
                 insert_client(Head, nmsg, connfd);//，如果没在链表结构里面，将这个客户端添加到我们的链表中
                 
                 linkList q = Head->next;      //新建一个暂时的链表用来遍历
-                sprintf(nmsg.text, "welcome to join us ip:%s Port:%d!\n",nmsg.name,nmsg.port_name);
+                sprintf(nmsg->text, "welcome to join us ip:%s Port:%d!\n",nmsg->name,nmsg->port_name);
                 while (q){
-                    if (send(q->cfd, &nmsg.text, sizeof(nmsg.text), 0) == -1){
+                    if (send(q->cfd, &nmsg->text, sizeof(nmsg->text), 0) == -1){
                         perror("[send_1]");
                     }
                     q = q->next;                   
                 }
                 //free(q);
-                bzero(nmsg.text,sizeof(nmsg.text));
+                bzero(nmsg->text,sizeof(nmsg->text));
                 
 
             }
 	}
 	else {
 		int tuichu = 0;
-		tuichu = read(connfd, nmsg.text, sizeof(nmsg.text));
+		tuichu = read(connfd, nmsg->text, sizeof(nmsg->text));
 		//after chatting close the socket
 		if(tuichu = 0){
 		//客户端退出
@@ -186,7 +186,7 @@ int main()
 		}  
 
 		if (connfd == EPOLLIN){
-			printf("IP%s port %d说: %s", nmsg.name, nmsg. port_name, nmsg.text);
+			printf("IP%s port %d说: %s", nmsg->name, nmsg-> port_name, nmsg->text);
 			
 			//接受消息
 		}

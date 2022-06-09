@@ -4,7 +4,7 @@
 
 #include "epolll.h"
 
-void newMessage(NMSG nmsg) {
+void newMessage(NMSG_PTR nmsg) {
 	static int rol = 1;
 	time_t t;
 	struct tm *timeinfo;
@@ -16,7 +16,7 @@ void newMessage(NMSG nmsg) {
 
 	set_cursor(rol++, 0);
 	printf(COLOR_BLUE " [%s]" COLOR_DEFAULT, mytime);
-	printf(COLOR_GREEN "[IP:%s PORT: %d] 说" COLOR_DEFAULT, nmsg.name, nmsg.port_name);
-	printf(COLOR_RED " [%s]" COLOR_DEFAULT "\n", nmsg.text);
+	printf(COLOR_GREEN "[IP:%s PORT: %d] 说" COLOR_DEFAULT, nmsg->name, nmsg->port_name);
+	printf(COLOR_RED " [%s]" COLOR_DEFAULT "\n", nmsg->text);
 }
 

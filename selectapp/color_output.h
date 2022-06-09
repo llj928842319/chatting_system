@@ -32,7 +32,7 @@
 
 #define set_cursor(x,y) printf("\033[%d;%dH", x, y)
 
-void newMessage(NMSG nmsg);
+void newMessage(NMSG_PTR nmsg);
 
 
 #endif

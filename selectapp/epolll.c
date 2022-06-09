@@ -2,6 +2,19 @@
 #include "color_output.h"
 #include "scanbox.h"
 
+NMSG_PTR nmsg=NULL;//实例化
+linkList Head=NULL;
+void NMSG_init()
+{
+    nmsg = (NMSG_PTR)malloc(sizeof(NMSG));
+    
+}
+void NMSG_delete()
+{
+    free(nmsg);
+    nmsg = NULL;
+}
+
 //创建头节点
 linkList head_init()
 {
@@ -12,36 +25,37 @@ linkList head_init()
 }
 
 //创建节点插入函数
-void insert_client(linkList Head, NMSG nmsg, int connfd)
+void insert_client(linkList Head, NMSG_PTR nmsg, int connfd)
 {
     linkList p = (linkList)malloc(sizeof(linklist));
-    strcpy(p->name, nmsg.name); //复制字符
+    strcpy(p->name, nmsg->name); //复制字符
     p->cfd = connfd;
-    p->portid = nmsg.port_name;
+    p->portid = nmsg->port_name;
     p->next = Head->next;
     Head->next = p;
     bzerobuffer(nmsg);
 }
 /*
 //创建节点删除函数
-void delete_client(linkList Head, NMSG nmsg, int connfd)
+void delete_client(linkList Head, NMSG_PTR nmsg, int connfd)
 {
     linkList p = (linkList)malloc(sizeof(linklist));
-    strcpy(p->name, nmsg.name); //复制字符
+    strcpy(p->name, nmsg->name); //复制字符
     p->cfd = connfd;
-    *(p->portid) = nmsg.port_name;
+    *(p->portid) = nmsg->port_name;
     p->next = Head->next;
     Head->next = p;
 }
 */
 //判断链表中是否已经存储
-int name_exist(linkList H, NMSG nmsg, int connfd)
+int name_exist(linkList H, NMSG_PTR nmsg, int connfd)
 {
     linkList s = H->next;
+
     while (s)
     { //如果服务器中已经有这个人了，就不存,并给该客户端发送消息
-        printf("%s\n%s\n",s->name,nmsg.name);
-        if ((strcmp(s->name, nmsg.name) == 0) && (s->portid == nmsg.port_name))
+        printf("%s\n%s\n",s->name,nmsg->name);
+        if ((strcmp(s->name, nmsg->name) == 0) && (s->portid == nmsg->port_name))
         { 
             return 0;
         }
@@ -93,42 +107,42 @@ void accept_client(struct epoll_event *events, int epoll_fd, int listen_fd) //�
     // char clientname[30] ;
     // long int l = 0;
     getpeername(connfd, (struct sockaddr *)&client_address, &client_addrlength);
-    strcpy(nmsg.name, inet_ntoa(client_address.sin_addr)); // 获取ip
-    nmsg.port_name = client_address.sin_port;              //获取端口
-    printf("IP:%s,PORT%d", nmsg.name, nmsg.port_name);
+    strcpy(nmsg->name, inet_ntoa(client_address.sin_addr)); // 获取ip
+    nmsg->port_name = client_address.sin_port;              //获取端口
+    printf("IP:%s,PORT%d", nmsg->name, nmsg->port_name);
 
     addfd(epoll_fd, connfd, false); //添加到epoll结构中并初始化为LT模式
                                     // TODO: 把 connfd 加到自己的数据结构里
     if (name_exist(Head, nmsg, connfd) == 0)
     { //判断在链表结构里面
-        bzero(nmsg.text, sizeof(nmsg.text));
-        sprintf(nmsg.text, "The user ip:%s port:%d has been registered!\n", nmsg.name, nmsg.port_name);
+        bzero(nmsg->text, sizeof(nmsg->text));
+        sprintf(nmsg->text, "The user ip:%s port:%d has been registered!\n", nmsg->name, nmsg->port_name);
         send_to_allclient(nmsg);
-        bzero(nmsg.text, sizeof(nmsg.text));
+        bzero(nmsg->text, sizeof(nmsg->text));
     }
     else
     {
         insert_client(Head, nmsg, connfd); //，如果没在链表结构里面，将这个客户端添加到我们的链表中
         printf("加进来了");
-        sprintf(nmsg.text, "welcome to join us ip:%s Port:%d!\n", nmsg.name, nmsg.port_name);
+        sprintf(nmsg->text, "welcome to join us ip:%s Port:%d!\n", nmsg->name, nmsg->port_name);
         send_to_allclient(nmsg);
         
     }
 }
 
-void read_from_stdin(NMSG nmsg)
+void read_from_stdin(NMSG_PTR nmsg)
 {
     boxout();
     printf("到了键盘输入的地方\n");
     bzerobuffer(nmsg);
-    scantext(nmsg.text, sizeof(nmsg.text));
-    printf("nmsg.text:%s\n", nmsg.text); 
+    scantext(nmsg->text, sizeof(nmsg->text));
+    printf("nmsg->text:%s\n", nmsg->text); 
 }
 
-void read_from_client(NMSG nmsg,  int fd, int epoll_fd)
+void read_from_client(NMSG_PTR nmsg,  int fd, int epoll_fd)
 {
     // printf("%d",evens[i].data.fd);
-    int ret = read(fd, nmsg.text, sizeof(nmsg.text));
+    int ret = read(fd, nmsg->text, sizeof(nmsg->text));
     if (ret == -1)
     {
         // TODO: 把 这个 fd 从数据结构里移出
@@ -152,21 +166,21 @@ void read_from_client(NMSG nmsg,  int fd, int epoll_fd)
     else
     {
         newMessage(nmsg);
-        printf("在newmassage里面nmsg.text:%s\n",nmsg.text);////这个没问题
+        printf("在newmassage里面nmsg.text:%s\n",nmsg->text);////这个没问题
         // bzero(buff, BUFFER_SIZE);
     }
 }
 
-void send_to_allclient(NMSG nmsg)
+void send_to_allclient(NMSG_PTR nmsg)
 {
     int ret = 0;
     linkList t = Head->next; //创建一个临时结点用于遍历
-    printf("进来了,send_to_allclient,nmsg.text:%s\n",nmsg.text);
+    printf("进来了,send_to_allclient,nmsg->text:%s\n",nmsg->text);
     while (t)
     {
         boxout();
-        ret = send(t->cfd, nmsg.text, sizeof(nmsg.text), 0);
-        printf("%s\n",nmsg.text);
+        ret = send(t->cfd, nmsg->text, sizeof(nmsg->text), 0);
+        printf("%s\n",nmsg->text);
         if (ret == -1)
         {
             perror("[send_3]");
@@ -180,18 +194,18 @@ void send_to_allclient(NMSG nmsg)
 }
 
 void 
-broadcast(NMSG nmsg)
+broadcast(NMSG_PTR nmsg)
 { //服务器群发消息
     send_to_allclient(nmsg);
     newMessage(nmsg);
 
 }
 
-void bzerobuffer(NMSG nmsg)
+void bzerobuffer(NMSG_PTR nmsg)
 {
-    bzero(nmsg.text, sizeof(nmsg.text));
-    nmsg.port_name = 0;
-    //nmsg.cfd, sizeof(nmsg.cfd));
+    bzero(nmsg->text, sizeof(nmsg->text));
+    nmsg->port_name = 0;
+    //nmsg->cfd, sizeof(nmsg->cfd));
 }
 /*  LT水平触发
  *  注意：水平触发简单易用，性能不高，适合低并发场合
@@ -201,6 +215,7 @@ void bzerobuffer(NMSG nmsg)
 void lt_process(struct epoll_event *events, int number, int epoll_fd, int server_fd)
 {
     int i = 0;
+    NMSG_init();
     for (i = 0; i < number; i++)
     {
         int fd = events[i].data.fd;
@@ -225,7 +240,7 @@ void lt_process(struct epoll_event *events, int number, int epoll_fd, int server
             
             if (fd == 0)
             { // 如果收到了来自 STDIN 的输入
-                printf("进来了STDIN_FILENO,nmsg.text:%s\n", nmsg.text); ////这个没问题
+                printf("进来了STDIN_FILENO,nmsg->text:%s\n", nmsg->text); ////这个没问题
                 read_from_stdin(nmsg);
                 
             }
@@ -236,10 +251,10 @@ void lt_process(struct epoll_event *events, int number, int epoll_fd, int server
             }
             */
             read_from_client(nmsg, fd, epoll_fd);
-            printf("在广播之前的nmsg.text:::%s\n",nmsg.text);
+            printf("在广播之前的nmsg.text:::%s\n",nmsg->text);
             broadcast(nmsg);
             bzerobuffer(nmsg);
-            printf("在广播之后的nmsg.text:::%s\n", nmsg.text);
+            printf("在广播之后的nmsg.text:::%s\n", nmsg->text);
         }
     }
 }

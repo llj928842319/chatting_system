@@ -28,8 +28,8 @@ typedef struct newmessager{
     char type;//消息类型
     char dst_name[30];//目的客户姓名
     char text[BUFFER_SIZE];//消息内容，也就是缓存区 
-}NMSG;
-NMSG nmsg;//实例化
+}NMSG_PTR;
+NMSG_PTR nmsg;//实例化
 
 
 
@@ -55,21 +55,21 @@ linkList head_init()
 }
 
 //创建节点插入函数
-void insert_client(linkList Head, NMSG nmsg, int connfd)
+void insert_client(linkList Head, NMSG_PTR nmsg, int connfd)
 {
     linkList p = (linkList)malloc(sizeof(linklist));
-    strncpy(p->name, nmsg.name, sizeof(nmsg.name));
+    strncpy(p->name, nmsg->name, sizeof(nmsg->name));
     p->cfd = connfd;
     p->next = Head->next;
     Head->next = p;
 }
 
 //判断链表中是否已经存储
-int name_exist(linkList H ,NMSG nmsg,int connfd)
+int name_exist(linkList H ,NMSG_PTR nmsg,int connfd)
 {
     linkList s = H->next;
     while (s){//如果服务器中已经有这个人了，就不存,并给该客户端发送消息
-        if (strncmp(nmsg.name, s->name, sizeof(nmsg.name)) == 0){
+        if (strncmp(nmsg->name, s->name, sizeof(nmsg->name)) == 0){
             //free(s);
             return 0;
         }
@@ -100,9 +100,9 @@ int main()
 
 
     while (t){
-        if (!strncmp(nmsg.dst_name, t->name, sizeof(nmsg.dst_name))){//表示有这个人
+        if (!strncmp(nmsg->dst_name, t->name, sizeof(nmsg->dst_name))){//表示有这个人
             
-            printf("%d\n",nmsg.cfd);
+            printf("%d\n",nmsg->cfd);
         }
         t = t->next;
     return 0;
